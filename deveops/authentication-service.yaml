@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: authentication-services
+spec:
+  template:
+    metadata:
+      name: authentication-services-pod
+    spec:
+      containers:
+        - name: authentication-services
+          image: hpid-service-authentication-services:latest
+          imagePullPolicy: Never
+      restartPolicy: Never

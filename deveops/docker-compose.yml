@@ -1,0 +1,178 @@
+version: '2'
+services:
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  postgres:
+    image: postgres:latest
+    container_name: hpid_db
+    environment:
+      POSTGRES_HOST: 43.205.121.225
+      POSTGRES_DB: hpid
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    
+
+  redis:
+    image: redis:latest
+    container_name: hpid_redis
+    ports:
+      - "6379:6379"
+
+  account-services:
+    build:
+      context: ./account-services
+      dockerfile: DockerFile
+    container_name: account-services
+    environment:
+      - spring.datasource.url=jdbc:postgresql://postgres:5432/hpid
+      - spring.datasource.username=postgres
+      - spring.datasource.password=root
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+      - spring.jpa.hibernate.ddl-auto=update
+    ports:
+      - "9002:9002"
+    depends_on:
+      - postgres
+      - redis
+
+  authentication-services:
+    build:
+      context: ./authentication-services
+      dockerfile: DockerFile
+    container_name: authentication-services
+    environment:
+      - spring.datasource.url=jdbc:postgresql://postgres:5432/hpid
+      - spring.datasource.username=postgres
+      - spring.datasource.password=root
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+      - spring.jpa.hibernate.ddl-auto=update
+    ports:
+      - "9001:9001"
+    depends_on:
+      - postgres
+
+  common-services:
+    build:
+      context: ./common-services
+      dockerfile: DockerFile
+    container_name: common-services
+    environment:
+      - spring.datasource.url=jdbc:postgresql://postgres:5432/hpid
+      - spring.datasource.username=postgres
+      - spring.datasource.password=root
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+      - spring.jpa.hibernate.ddl-auto=update
+      - spring.redis.host=hpid_redis
+      - aadhaar.secretKey=DevelopmentMainSabChalega!Bhai
+      - authts.secretKey=hP2@dEVkE#sECERT
+      - amazonProperties.endpointUrl=https://upload-bkt1.s3.ap-south-1.amazonaws.com
+      - amazonProperties.bucketName=upload-bkt1
+      - amazonProperties.access_key=YOUR_ACCESS_KEY
+      - amazonProperties.secret_key=YOUR_SECRET_KEY
+      - amazonProperties.region=YOUR_REGION
+      - feignClient.transaction.url=http://transaction-services:9005
+      - feign.client.config.default.loggerLevel=full
+      - application.topic.sendOTP.queue=send-otp-queue
+      - captcha.web.clientID=
+      - captcha.web.clientSecret=
+      - minio.url=sjflsdjlfk
+      - minio.access.key=sdjflksadjfkd
+      - minio.access.secret=somehting
+      - minio.bucket.name=asldjflksajf
+      - local.outputFileName=ashdljfkk
+      - upload.active=PitogeTumLog
+      - lgd.json.file=/home/ubuntu/dev/hpid-service/common-services/src/main/resources/lgd_latest.json
+
+    ports:
+      - "9007:9007"
+    depends_on:
+      - postgres
+      - redis
+
+
+  kyc-services:
+    build:
+      context: ./kyc-services
+      dockerfile: DockerFile
+    container_name: kyc-services
+    environment:
+      - spring.datasource.url=jdbc:postgresql://postgres:5432/hpid
+      - spring.datasource.username=postgres
+      - spring.datasource.password=root
+      - spring.kafka.bootstrap-servers=kafka:9092
+      - KafkaProducer.config.enabled=false
+
+    ports:
+      - "9003:9003"
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+
+  search-services:
+    build:
+      context: ./search-services
+      dockerfile: DockerFile
+    container_name: search-services
+    environment:
+      - spring.datasource.url=jdbc:postgresql://postgres:5432/hpid
+      - spring.datasource.username=postgres
+      - spring.datasource.password=root
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+      - spring.jpa.hibernate.ddl-auto=update
+    ports:
+      - "9004:9004"
+    depends_on:
+      - postgres
+      - kafka
+
+  transaction-services:
+    build:
+      context: ./transaction-services
+      dockerfile: DockerFile
+    container_name: transaction-services
+    environment:
+      - spring.datasource.url=jdbc:postgresql://postgres:5432/hpid
+      - spring.datasource.username=postgres
+      - spring.datasource.password=root
+      - spring.kafka.template.default-topic=send-otp-queue
+      - spring.kafka.template.queue=send-otp-queue
+      - spring.kafka.consumer.group-id=otp-group
+      - spring.kafka.consumer.auto-offset-reset=earliest
+      - spring.kafka.consumer.bootstrap-servers=kafka:9092
+      - spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+      - spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+      - spring.jpa.hibernate.ddl-auto=update
+      - spring.jpa.show-sql=false
+      - spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+
+
+    ports:
+      - "9005:9005"
+    depends_on:
+      - postgres
+      - kafka

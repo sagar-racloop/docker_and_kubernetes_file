@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zookeeper
+spec:
+  template:
+    metadata:
+      name: zookeeper-pod
+    spec:
+      containers:
+        - name: zookeeper-services
+          image: confluentinc/cp-zookeeper:latest
+          imagePullPolicy: Never
+      restartPolicy: Never

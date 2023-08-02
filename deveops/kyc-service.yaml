@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kyc-services
+spec:
+  template:
+    metadata:
+      name: kyc-services-pod
+    spec:
+      containers:
+        - name: kyc-services
+          image: hpid-service-kyc-services:latest
+          imagePullPolicy: Never
+      restartPolicy: Never

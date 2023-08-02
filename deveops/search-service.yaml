@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: search-services
+spec:
+  template:
+    metadata:
+      name: search-services-pod
+    spec:
+      containers:
+        - name: search-services
+          image: hpid-service-search-services:latest
+          imagePullPolicy: Never
+      restartPolicy: Never

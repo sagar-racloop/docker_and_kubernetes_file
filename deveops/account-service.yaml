@@ -1,0 +1,67 @@
+# hpid-service-account-services Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpid-service-account-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hpid-service-account-services
+  template:
+    metadata:
+      labels:
+        app: hpid-service-account-services
+    spec:
+      containers:
+        - name: "hpid-service-account-services"
+          image: hpid-service-account-services:latest
+          imagePullPolicy: Never   # Set imagePullPolicy to Never
+          env:
+            - name: POSTGRES_HOST
+              value: "43.205.121.225"
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: root
+            - name: POSTGRES_DB
+              value: hpid
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+# hpid-service-account-services Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: hpid-service-account-services
+spec:
+  selector:
+    app: hpid-service-account-services
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: LoadBalancer
+
+---
+# Added separator between resources
+
+# PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
